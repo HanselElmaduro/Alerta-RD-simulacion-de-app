@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#080e18">
+  <title>Confirmar correo · Alerta RD</title>
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="stylesheet" href="./styles.css">
+  <style>body{min-height:100dvh;display:grid;place-items:center;padding:24px}.auth-return{width:min(100%,520px)}.auth-return h1{font-size:1.8rem;margin:16px 0}.auth-return .btn{margin-top:20px}</style>
+</head>
+<body>
+  <main class="card auth-return">
+    <p class="eyebrow">ALERTA RD · CUENTA PRIVADA</p>
+    <h1>Confirmación del correo</h1>
+    <p id="auth-status" role="status" aria-live="polite">Comprobando tu enlace de confirmación…</p>
+    <a class="btn primary" id="auth-continue" href="./#contacts">Ir a mi cuenta</a>
+  </main>
+  <script type="module" src="./auth-callback.js"></script>
+</body>
+</html>
