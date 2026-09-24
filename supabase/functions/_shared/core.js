@@ -16,7 +16,7 @@ export function strictBody(b,keys){if(!b||Array.isArray(b)||typeof b!=='object'|
 export function validLocation(lat,lng){return Number.isFinite(lat)&&Number.isFinite(lng)&&lat>=-90&&lat<=90&&lng>=-180&&lng<=180;}
 export async function apiHandler(req,{db,env,auth}){
  const origin=req.headers.get('origin');
- const origins=list(env('ALLOWED_ORIGINS')||'https://alerta-rd-demo-interactiva.hanselh151.chatgpt.site,http://localhost:3000');
+ const origins=list(env('ALLOWED_ORIGINS')||'https://alerta-rd-simulacion-de-app.vercel.app,https://alerta-rd-demo-interactiva.hanselh151.chatgpt.site,http://localhost:3000');
  if(origin&&!origins.includes(origin))return json({error:'Origen no autorizado'},403);
  const cors=origin?{'access-control-allow-origin':origin,'vary':'Origin','access-control-allow-headers':'authorization,apikey,content-type,x-client-info','access-control-allow-methods':'POST,OPTIONS'}:{};
  if(req.method==='OPTIONS')return new Response(null,{status:204,headers:cors});

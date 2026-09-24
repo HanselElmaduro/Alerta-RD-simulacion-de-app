@@ -65,3 +65,22 @@ test('challenge webhook requiere el token exacto',async()=>{
  assert.equal((await webhookHandler(new Request('https://test?hub.mode=subscribe&hub.verify_token=wrong&hub.challenge=hello'),{env,db:dbMock()})).status,403);
  assert.equal(await (await webhookHandler(new Request('https://test?hub.mode=subscribe&hub.verify_token=fake-verify&hub.challenge=hello'),{env,db:dbMock()})).text(),'hello');
 });
+
+test('CORS permite el dominio publicado y exige autenticación en POST',async()=>{
+ const origin='https://alerta-rd-simulacion-de-app.vercel.app';
+ const deps={db:dbMock(),env:()=>'',auth:async()=>null};
+ const preflight=await apiHandler(new Request('https://test',{method:'OPTIONS',headers:{origin,'access-control-request-method':'POST','access-control-request-headers':'authorization,apikey,content-type,x-client-info'}}),deps);
+ assert.equal(preflight.status,204);assert.equal(preflight.headers.get('access-control-allow-origin'),origin);
+ for(const header of ['authorization','apikey','content-type','x-client-info'])assert.ok(preflight.headers.get('access-control-allow-headers').split(',').includes(header));
+ const unauthenticated=await apiHandler(new Request('https://test',{method:'POST',headers:{origin},body:'{"action":"health"}'}),deps);
+ assert.equal(unauthenticated.status,401);assert.equal(unauthenticated.headers.get('access-control-allow-origin'),origin);
+ const health=await apiHandler(new Request('https://test',{method:'POST',headers:{origin,authorization:'Bearer test'},body:'{"action":"health"}'}),{...deps,auth:async()=>authorized});
+ assert.equal(health.status,200);assert.equal((await health.json()).ready,false);
+});
+test('CORS rechaza sitios ajenos y respeta la lista explícita del administrador',async()=>{
+ const deps={db:dbMock(),env:()=>'',auth:()=>assert.fail('No debe consultar usuarios')};
+ for(const origin of ['https://otro.vercel.app','https://alerta-rd-simulacion-de-app.vercel.app.evil.invalid']){
+ const r=await apiHandler(new Request('https://test',{method:'OPTIONS',headers:{origin}}),deps);assert.equal(r.status,403);assert.equal(r.headers.get('access-control-allow-origin'),null);
+ }
+ const r=await apiHandler(new Request('https://test',{method:'OPTIONS',headers:{origin:'https://alerta-rd-simulacion-de-app.vercel.app'}}),{...deps,env:k=>k==='ALLOWED_ORIGINS'?'https://privado.example':''});assert.equal(r.status,403);
+});

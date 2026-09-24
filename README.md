@@ -14,13 +14,15 @@ Web responsive en español con dos espacios independientes: **Demostración** (s
 
 Repositorio: https://github.com/HanselElmaduro/Alerta-RD-simulacion-de-app
 
+Web de producción: https://alerta-rd-simulacion-de-app.vercel.app
+
 Publicación anterior: https://alerta-rd-demo-interactiva.hanselh151.chatgpt.site
 
 ## Publicar en Vercel y corregir la confirmación por correo
 
 1. En Vercel, importa `HanselElmaduro/Alerta-RD-simulacion-de-app`, rama `main`, raíz del repositorio. `vercel.json` configura **Other**, `npm ci`, `npm run build` y salida `dist`. Usa Node 24.x. La clave publishable incluida es pública; no agregues secretos de Meta a Vercel.
-2. Copia el dominio de producción que Vercel asigne. En Supabase → **Authentication → URL Configuration**, establece **Site URL** a `https://TU-DOMINIO.vercel.app` y agrega **Redirect URLs** `https://TU-DOMINIO.vercel.app/auth-callback.html`. Conserva los destinos de otras aplicaciones que utilicen este proyecto. Para desarrollo puedes permitir `http://localhost:3000/auth-callback.html`.
-3. En Supabase → **Edge Functions → Secrets**, agrega ese origen exacto (sin ruta ni barra final) a `ALLOWED_ORIGINS`, conservando los orígenes que sigas usando. Esta lista permite llamar al endpoint SOS; es distinta de la lista de redirecciones de Auth.
+2. Copia el dominio de producción que Vercel asigne. En Supabase → **Authentication → URL Configuration**, establece **Site URL** a `https://alerta-rd-simulacion-de-app.vercel.app` y agrega **Redirect URLs** `https://alerta-rd-simulacion-de-app.vercel.app/auth-callback.html`. Conserva los destinos de otras aplicaciones que utilicen este proyecto. Para desarrollo puedes permitir `http://localhost:3000/auth-callback.html`.
+3. En Supabase → **Edge Functions → Secrets**, agrega ese origen exacto (sin ruta ni barra final) a `ALLOWED_ORIGINS`, conservando los orígenes que sigas usando. Esta lista permite llamar al endpoint SOS; es distinta de la lista de redirecciones de Auth. Si no defines `ALLOWED_ORIGINS`, el código permite por defecto el dominio de producción anterior, el sitio previo de demostración y localhost. Una lista explícita reemplaza esos valores; debe incluir el dominio que realmente uses.
 4. Usa la plantilla de confirmación estándar de Supabase con `{{ .ConfirmationURL }}`. El registro y el reenvío pasan explícitamente la página `auth-callback.html` como destino. Un enlace antiguo puede seguir apuntando a localhost: solicita uno nuevo **solo si el correo sigue pendiente**.
 5. En la web publicada, selecciona **Cuenta / SOS real** → inicia sesión → **Más → Contactos → Agregar contacto**. Completa nombre, teléfono internacional (`+` y código de país) y parentesco; registra el consentimiento de la persona y guarda.
 
@@ -252,3 +254,10 @@ Dependencias fijadas y archivos lock incluidos. El frontend estático se publica
 - [Meta: inicio de WhatsApp Business](https://developers.facebook.com/documentation/business-messaging/whatsapp/get-started)
 - [Meta: colección oficial Cloud API](https://www.postman.com/meta/whatsapp-business-platform/collection/wlk6lh4/whatsapp-cloud-api)
 - [Meta: ejemplos oficiales](https://github.com/fbsamples/whatsapp-api-examples)
+
+
+### Si iniciaste sesión pero aparece un error del servidor SOS
+
+El correo y el botón Cerrar sesión indican que el acceso a la cuenta se completó. Un error de la comprobación SOS no significa que tu contraseña esté mal. La versión corregida mantiene Contactos y Perfil utilizables si falla esa comprobación. El botón Actualizar estado vuelve a consultar el servicio, sin crear una alerta.
+
+La causa corregida en este despliegue fue un preflight CORS `403 Origen no autorizado`: faltaba `https://alerta-rd-simulacion-de-app.vercel.app` en los orígenes del endpoint. Se añadió únicamente ese dominio exacto; no se abrió acceso a cualquier sitio de Vercel. La API sigue exigiendo un usuario autenticado con correo confirmado.

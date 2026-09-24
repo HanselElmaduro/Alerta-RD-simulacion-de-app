@@ -40,3 +40,13 @@ Número emisor y WABA de Meta, token de usuario de sistema, dos plantillas aprob
 - Configuración de Vercel incluida (`dist`, `npm run build`).
 - Build correcto; 27 pruebas de lógica/servidor/confirmación aprobadas, 16 recorridos DOM demo y recorrido DOM de cuenta/contactos/SOS con API simulada aprobados.
 - No se enviaron correos de prueba ni alertas de WhatsApp reales. La prueba de entrega real sigue pendiente de autorización y credenciales Meta.
+
+
+## Corrección de conexión desde Vercel — 24/09/2026
+
+- Reproducido: OPTIONS desde el dominio de producción devolvía 403 «Origen no autorizado».
+- Añadido el origen exacto en `sos-api`, sin cambiar autenticación, RLS ni habilitar envíos.
+- Separados los fallos de disponibilidad SOS de los resultados de acceso, perfil y contactos.
+- 29 pruebas de lógica/servidor aprobadas, incluyendo preflight autorizado, POST sin sesión rechazado y dominios ajenos bloqueados.
+- Recorrido DOM comprueba que perfil/contactos se guardan con API de salud caída y que el aviso desaparece al recuperar el servicio.
+- No se enviaron alertas reales.
