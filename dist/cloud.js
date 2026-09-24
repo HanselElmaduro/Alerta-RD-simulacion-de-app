@@ -26,6 +26,19 @@ export function connectCloud(){
      if(error){let msg;try{msg=(await error.context?.json())?.error;}catch{}throw Error(msg||'No se pudo contactar al servidor. Consulta el historial antes de volver a intentar.');}
      if(data?.error)throw Error(data.error);return data;
    },
+   internalData:async()=>{const [links,events,inbox]=await Promise.all([
+     take(client.from('alerta_app_links').select('*').order('created_at',{ascending:false}).limit(100)),
+     take(client.from('alerta_app_events').select('*').order('created_at',{ascending:false}).limit(50)),
+     take(client.from('alerta_app_inbox').select('*').order('available_at',{ascending:false}).limit(100))
+   ]);const outbox=events.length?await take(client.from('alerta_app_outbox').select('*').in('event_id',events.map(e=>e.id)).limit(250)):[];return {links,events,outbox,inbox};},
+   internal:async body=>{
+     const {data,error}=await client.functions.invoke('internal-sos',{body});
+     if(error){let message;try{message=(await error.context?.json())?.error;}catch{}
+       const failure=Error(message||'No se pudo contactar al servidor. Usa Actualizar; no supongas que el SOS se canceló.');
+       failure.definitive=!!message&&[400,401,403,409].includes(error.context?.status);throw failure;
+     }
+     if(data?.error){const failure=Error(data.error);failure.definitive=true;throw failure;}return data;
+   },
    recovery:request=>take(client.from('alerta_sos_events').select('*').eq('request_id',request).maybeSingle())
  };
 }

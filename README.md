@@ -1,12 +1,54 @@
-# Alerta RD · SOS con Supabase y WhatsApp Business
+# Alerta RD · SOS entre amigos registrados
 
-Web responsive en español con dos espacios independientes: **Demostración** (simulaciones locales, ningún mensaje externo) y **Cuenta / SOS real** (Supabase Auth, contactos privados y procesamiento de SOS en el servidor).
+Web responsive en español con dos espacios independientes: **Demostración** (simulaciones locales, ningún mensaje externo) y **Cuenta / SOS real** (Supabase Auth, amigos vinculados, bandeja privada y procesamiento de SOS en el servidor). WhatsApp sigue disponible como canal opcional separado.
+
+## Nuevo: alertas dentro de Alerta RD (ya desplegado)
+
+No necesita una cuenta de Meta, número emisor ni token de WhatsApp.
+
+1. Tú y tu amigo se registran, confirman su correo e inician sesión en **Cuenta / SOS real**. Ambos completan su nombre en **Perfil**.
+2. Tu amigo abre **Contactos**, pulsa **Copiar mi código** y te lo comparte por el medio que prefiera.
+3. En tu cuenta, **Contactos → Agregar amigo registrado**: pega su código y escribe la relación.
+4. Tu amigo abre **Contactos → Solicitudes**, y pulsa **Aceptar solicitud**. Cada vínculo tiene una dirección: quien agrega envía SOS; quien acepta los recibe. Para avisarse mutuamente, repitan en sentido contrario.
+5. En **SOS → En Alerta RD**, el botón se habilita al tener perfil, un amigo que aceptó y procesador disponible. Pulsarlo crea una alerta real con **10 segundos para cancelar en el servidor**. Si no cancelas, se publica en las cuentas vinculadas.
+6. Tu amigo la encuentra en **Central / Historial → Alertas recibidas**. Se muestra un aviso de alertas sin leer en todas las pantallas de su cuenta. Puede ver nombre, fecha y ubicación opcional, y pulsar **Confirmar que vi esta alerta**.
+
+**Con la página visible y sesión iniciada**, la aplicación consulta cambios cada 5 segundos y al volver a la pestaña. Con la web cerrada, conserva la alerta para el siguiente acceso. **Esta versión no implementa Web Push, notificaciones del sistema, SMS, correo ni sonido en segundo plano.** No promete avisar con el teléfono bloqueado ni atención de emergencia. «Disponible en su bandeja» significa guardada en su cuenta, no vista. «Lectura confirmada» solo aparece tras su acción explícita.
+
+La demo no participa de estos envíos. La sección opcional WhatsApp conserva su configuración separada y sigue desactivada. No se convirtieron los teléfonos anteriores en amigos automáticamente: hace falta código y aceptación.
+
+### Implementación del canal interno
+
+- Edge Function `internal-sos`: valida el JWT con Auth `getUser`, correo confirmado y cuenta no anónima. No acepta un ID de emisor ni destinatarios arbitrarios del navegador.
+- RPC `alerta_app_command`: solo ejecutable por `service_role`, `SECURITY INVOKER`. El servidor resuelve destinatarios desde vínculos aceptados. El código compartible es un UUID aleatorio distinto del ID de Auth; no existe directorio público de correos ni perfiles.
+- Tablas `alerta_app_links`, `alerta_app_events`, `alerta_app_outbox`, `alerta_app_inbox`: RLS y acceso directo de solo lectura. Bandeja solo para destinatario; eventos y resultados solo para emisor; solicitudes solo para sus participantes. Escrituras exclusivamente desde el servidor autenticado.
+- Cron `alerta-internal-sos` llama `alerta_publish_app_sos` cada 5 segundos, incluso al cerrar la web. Publicación atómica, bloqueo de eventos y consentimiento, UUID idempotente persistido por el cliente, deduplicación por evento/destinatario. Plazo mínimo 10 segundos; normalmente publica a los 10–15 segundos, sujeto a disponibilidad.
+- Retirar/rechazar el vínculo impide futuras publicaciones, también cuando el SOS aún está pendiente. Las alertas ya publicadas permanecen en el historial. Rechazar impide nuevas solicitudes de esa cuenta; un contacto eliminado por el emisor puede solicitarse de nuevo.
+- Máximo 5 amigos pendientes/aceptados por emisor, 10 intentos de invitación al día (incluye códigos inexistentes), 3 SOS cada 15 minutos y 10 al día. Un SOS pendiente por cuenta. Alertas pendientes durante más de dos minutos después de su plazo vencen sin publicación.
+- No hay nuevas variables de entorno obligatorias: usa los secretos Supabase que ya provee la plataforma. `ALLOWED_ORIGINS`, si se configura, debe incluir el dominio de producción exacto.
+- Migraciones instaladas: `20260924213228_alerta_internal_sos.sql` y `20260924213503_alerta_internal_auth_boundary.sql`. La segunda mantiene la autenticación en Edge sin ampliar permisos sobre `auth.users`. No vuelvas a aplicarlas manualmente al proyecto actual.
+
+Para una instalación nueva, aplica todas las migraciones y despliega también `internal-sos`:
+
+```bash
+npx supabase functions deploy internal-sos --project-ref TU_PROJECT_REF --use-api
+npm run test:ui:internal
+```
+
+`tests/internal-security.sql` comprueba dos destinatarios/tercero, aceptación, privacidad, cancelación, 10 segundos, deduplicación, revocación, lectura y límites en una transacción con usuarios ficticios y `ROLLBACK`. No envía avisos a cuentas reales. Las pruebas de interfaz usan un transporte falso. La prueba entre tú y tu amigo debe hacerse avisándole antes de pulsar SOS; se tratará de una alerta interna real.
+
+Comprobación administrativa sin datos personales:
+
+```sql
+select jobname, schedule, active from cron.job where jobname='alerta-internal-sos';
+select heartbeat > now() - interval '60 seconds' as disponible from alerta_private.app_runtime;
+```
 
 ## Estado de esta entrega — 24 de septiembre de 2026
 
 - Conectada al proyecto Supabase **AlertaRD**, referencia `usxbxrxgrxfjuwvdvecs`.
-- Tres migraciones aplicadas: tablas, RLS, funciones de servidor y programador.
-- Desplegadas `sos-api`, `sos-dispatch` y `whatsapp-webhook`.
+- Cinco migraciones aplicadas: tablas, RLS, funciones de servidor y ambos programadores.
+- Desplegadas `internal-sos`, `sos-api`, `sos-dispatch` y `whatsapp-webhook`.
 - Programador activo cada 5 segundos, con comprobación de actividad del procesador verificada.
 - **WhatsApp todavía desactivado.** No se suministraron credenciales, número ni plantillas de Meta. Ningún mensaje real fue enviado durante el desarrollo.
 - El envío real completo **no está verificado**. Queda pendiente una prueba expresamente autorizada con los números acordados.
@@ -52,7 +94,7 @@ node --env-file=.env.local scripts/build.mjs
 
 `build.mjs` solo exporta esas dos variables, exige clave `sb_publishable_` y nunca copia las variables de Meta al navegador. `.env.example` y `supabase/functions/.env.example` contienen únicamente nombres, sin valores secretos. Los archivos `.env.*` reales están excluidos de Git.
 
-## Recorrido de uso
+## Recorrido del canal opcional WhatsApp
 
 1. Elegir **Cuenta / SOS real**, crear una cuenta y confirmar el correo. Iniciar sesión.
 2. En Perfil, guardar el nombre que aparecerá en las alertas.
@@ -205,6 +247,7 @@ npm test
 npm ci --prefix qa
 npm run test:ui
 npm run test:ui:real
+npm run test:ui:internal
 node scripts/check-secrets.mjs
 ```
 

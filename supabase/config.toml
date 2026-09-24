@@ -5,3 +5,5 @@ verify_jwt = false # Handler validates Auth JWT with getUser().
 verify_jwt = false # Internal random Vault token verified against server-only hash.
 [functions.whatsapp-webhook]
 verify_jwt = false # Meta HMAC-SHA256 signature + verification challenge.
+[functions.internal-sos]
+verify_jwt = false # getUser validates confirmed, nonanonymous users; all recipients resolved in SQL.

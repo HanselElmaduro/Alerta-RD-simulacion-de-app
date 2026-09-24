@@ -50,3 +50,13 @@ Número emisor y WABA de Meta, token de usuario de sistema, dos plantillas aprob
 - 29 pruebas de lógica/servidor aprobadas, incluyendo preflight autorizado, POST sin sesión rechazado y dominios ajenos bloqueados.
 - Recorrido DOM comprueba que perfil/contactos se guardan con API de salud caída y que el aviso desaparece al recuperar el servicio.
 - No se enviaron alertas reales.
+
+
+## Canal interno entre cuentas · 24 de septiembre de 2026
+
+- Agregado canal independiente de WhatsApp: código compartible, solicitud, aceptación voluntaria, revocación, SOS de 10 segundos, bandeja recibida e historial por destinatario.
+- 33 pruebas de Node, interfaz de dos cuentas con transporte falso, pruebas previas de WhatsApp y 16 recorridos de demo aprobados. Compilación y revisión de secretos del frontend correctas.
+- `tests/internal-security.sql` ejecutado en Supabase: PASS. Usuarios ficticios dentro de transacción; ROLLBACK. Sin notificaciones persistidas ni mensajes externos. Verifica RLS entre emisor, destinatario y tercero, bloqueo del RPC al cliente, plazo, cancelación, idempotencia, ubicación ausente, confirmación explícita de lectura, revocación y límites.
+- Función `internal-sos` desplegada con validación propia de JWT usando getUser. No se amplió acceso del cliente o service_role a auth.users. Cron interno cada 5 segundos.
+- Asesor de seguridad: tablas nuevas públicas con RLS; tablas privadas sin políticas de cliente intencionalmente, accesibles solo por el servicio. Advertencias preexistentes de otros módulos (rls_auto_enable y configuración de contraseña) fuera de este cambio.
+- Límites: actualización con página visible, sin Web Push en segundo plano. La publicación no prueba lectura; esta exige acción del destinatario. No se contactó a usuarios reales durante estas comprobaciones.

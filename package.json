@@ -9,7 +9,8 @@
     "test": "node --test tests/*.test.mjs",
     "test:ui": "node qa/ui-smoke.mjs",
     "build": "node scripts/build.mjs",
-    "test:ui:real": "node qa/real-ui-smoke.mjs"
+    "test:ui:real": "node qa/real-ui-smoke.mjs",
+    "test:ui:internal": "node qa/internal-ui-smoke.mjs"
   },
   "engines": {
     "node": ">=20.11"
